@@ -5,6 +5,8 @@
         teampass find <passname>
         teampass insert <passname>
         teampass generate <passname>
+        teampass shell [-c]
+        teampass dump
 
 Retrieve or insert passwords into Teampass.
 
@@ -25,9 +27,14 @@ try:
     from docopt import docopt
     from xkcdpass import xkcd_password as xp
     import pyperclip
+    from prompt_toolkit.contrib.completers import WordCompleter
+    from prompt_toolkit import prompt
+    from prompt_toolkit.history import FileHistory
+    from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+    from prompt_toolkit.interface import AbortAction
 except ImportError:
-    print("This utility needs requests, docopt, xkcdpass and pyperclip."
-          "Try to do `pip install requests docopt xkcdpass pyperclip`.")
+    print("Some modules are missing. Try something like:"
+          "`pip install requests docopt xkcdpass pyperclip prompt_toolkit`.")
     sys.exit(1)
 
 
@@ -37,6 +44,8 @@ class TeampassClient:
         self.api_key = api_key
         self.categories = categories
         self.items = self.get_items()
+        self.output_to_clipboard = False
+        self.history = FileHistory(expanduser('~/.teampass_history'))
 
     def get_items(self):
         results = {}
@@ -77,9 +86,9 @@ class TeampassClient:
             if item['label'] == label and item['login'] == login:
                 return item['pw']
 
-    def show_password(self, passname, copy_to_clipboard=False):
+    def show_password(self, passname):
         password = self.get_password(passname)
-        if copy_to_clipboard:
+        if self.output_to_clipboard:
             pyperclip.copy(password)
         else:
             print(password)
@@ -112,10 +121,32 @@ class TeampassClient:
         print('Generated password: "{0}"'.format(password))
         self.insert_password(passname, password)
 
+    def search_password(self):
+        passnames_completer = WordCompleter(self.get_passnames(),
+                                            ignore_case=True)
+        passname = prompt('Password to display: ',
+                          completer=passnames_completer,
+                          history=self.history,
+                          auto_suggest=AutoSuggestFromHistory(),
+                          enable_history_search=True,
+                          complete_while_typing=True,
+                          on_abort=AbortAction.RETRY)
+        self.show_password(passname)
+
+    def shell(self):
+        try:
+            while True:
+                self.search_password()
+        except EOFError:
+            sys.exit(0)
+
+    def dump(self):
+        print(json.dumps(self.items, sort_keys=True, indent=4))
+
 
 if __name__ == "__main__":
     arguments = docopt(__doc__)
-    config_path = expanduser('~/.config/teampass.json')
+    config_path = expanduser('~/.teampass.json')
 
     try:
         config = json.load(open(config_path))
@@ -129,13 +160,20 @@ if __name__ == "__main__":
                         config['api_key'],
                         config['categories'])
 
+    if arguments['--clip']:
+        tc.output_to_clipboard = True
+
     if arguments['list']:
         tc.list_passnames()
     elif arguments['show']:
-        tc.show_password(arguments['<passname>'], arguments['--clip'])
+        tc.show_password(arguments['<passname>'])
     elif arguments['find']:
         tc.find_password(arguments['<passname>'])
     elif arguments['insert']:
         tc.insert_password(arguments['<passname>'], getpass('Password:'))
     elif arguments['generate']:
         tc.generate_password(arguments['<passname>'])
+    elif arguments['shell']:
+        tc.shell()
+    elif arguments['dump']:
+        tc.dump()
