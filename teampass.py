@@ -11,7 +11,7 @@
 Retrieve or insert passwords into Teampass.
 
 Arguments:
-  passname    password name
+  passname    password name in the form category/label/login
 
 Options:
   -c --clip   write to clipboard
@@ -20,7 +20,6 @@ Options:
 import sys
 import re
 import json
-from getpass import getpass
 from os.path import expanduser
 try:
     import requests
@@ -32,9 +31,12 @@ try:
     from prompt_toolkit.history import FileHistory
     from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
     from prompt_toolkit.interface import AbortAction
-except ImportError:
-    print("Some modules are missing. Try something like:"
-          "`pip install requests docopt xkcdpass pyperclip prompt_toolkit`.")
+    from prompt_toolkit.key_binding.defaults import load_key_bindings_for_prompt
+    from prompt_toolkit.keys import Keys
+    from prompt_toolkit.filters import Condition
+except ImportError as err:
+    print('Module {0} is missing. Try something like: `pip install {0}`.'
+          .format(err.name))
     sys.exit(1)
 
 
@@ -61,13 +63,13 @@ class TeampassClient:
         return results
 
     def get_passnames(self):
-        pass_list = []
+        passnames_list = []
         for category, items in self.items.items():
             for item, value in items.items():
-                pass_list.append(
+                passnames_list.append(
                     ("{0}/{1}/{2}"\
                     .format(category, value['label'], value['login'])))
-        return pass_list
+        return passnames_list
 
     def get_folder_id(self, folder):
         for key, value in self.categories.items():
@@ -86,19 +88,45 @@ class TeampassClient:
             if item['label'] == label and item['login'] == login:
                 return item['pw']
 
+
     def show_password(self, passname):
-        password = self.get_password(passname)
-        if self.output_to_clipboard:
-            pyperclip.copy(password)
+        try:
+            password = self.get_password(passname)
+        except IndexError:
+            print('Unable to parse input. '
+                  'Please make sure that <passname> is of the form:\n'
+                  'category/label/origin')
+        except KeyError as err:
+            print('Couldn\'t find `{0}`.'.format(err.args[0]))
         else:
-            print(password)
+            if self.output_to_clipboard:
+                pyperclip.copy(password)
+                print('Password sent to clipboard.')
+            else:
+                print(password)
 
     def find_password(self, passname):
         for name in self.get_passnames():
             if re.search(passname, name):
                 print(name)
 
-    def insert_password(self, passname, password):
+    def ask_password(self):
+        hidden = [True] # Nonlocal
+        registry = load_key_bindings_for_prompt()
+
+        @registry.add_binding(Keys.ControlT)
+        def _(event):
+            hidden[0] = not hidden[0]
+
+        print('Press Ctrl-T to toggle password visibility')
+
+        return prompt('Password: ',
+                      is_password=Condition(lambda cli: hidden[0]),
+                      key_bindings_registry=registry)
+
+    def insert_password(self, passname, password=None):
+        if not password:
+            self.ask_password()
         path = passname.split('/')
         folder, label, login = path[0], path[1], path[2]
         folder_id = self.get_folder_id(folder)
@@ -170,7 +198,7 @@ if __name__ == "__main__":
     elif arguments['find']:
         tc.find_password(arguments['<passname>'])
     elif arguments['insert']:
-        tc.insert_password(arguments['<passname>'], getpass('Password:'))
+        tc.insert_password(arguments['<passname>'])
     elif arguments['generate']:
         tc.generate_password(arguments['<passname>'])
     elif arguments['shell']:
