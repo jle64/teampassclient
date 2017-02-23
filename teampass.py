@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Usage:
         teampass list
-        teampass show [-c] <passname>
+        teampass [show] [-c] <passname>
         teampass find <passname>
         teampass insert <passname>
         teampass generate <passname>
@@ -193,8 +193,6 @@ if __name__ == "__main__":
 
     if arguments['list']:
         tc.list_passnames()
-    elif arguments['show']:
-        tc.show_password(arguments['<passname>'])
     elif arguments['find']:
         tc.find_password(arguments['<passname>'])
     elif arguments['insert']:
@@ -205,3 +203,5 @@ if __name__ == "__main__":
         tc.shell()
     elif arguments['dump']:
         tc.dump()
+    elif arguments['show'] or arguments['<passname>']:
+        tc.show_password(arguments['<passname>'])

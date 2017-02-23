@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -e
+shopt -s nullglob globstar
+cd "$(dirname "$(realpath "$0")")"
+
+password_files=$(teampass list)
+
+password=$(printf '%s\n' "${password_files[@]}" | dmenu "$@")
+
+[[ -n $password ]] || exit
+
+teampass show "$password" | head -n 1 | xclip -in
