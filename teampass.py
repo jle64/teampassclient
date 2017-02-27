@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Usage:
         teampass list
-        teampass [show] [-c] <passname>
+        teampass show [-c] <passname>
         teampass find <passname>
         teampass insert <passname>
         teampass generate <passname>
