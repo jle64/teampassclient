@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Imports Teampass content into the "pass" password manager
+# Needs the teampassclient teampass command available and configured
+
 
 [ -x "$(which teampass)" ] || echo 'Error: The teampass command is needed.'
 
