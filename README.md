@@ -20,6 +20,10 @@ teampass dump
 
 It is loosely inspired by the password store `pass(1)` utility and thus can be easily adapted for usage with some wrappers built for it such as the `passmenu` script for integration with `dmenu`/`rofi` and such.
 
+It can also be used to display them as json for easy use with `jq(1)` or other json parsing tools.
+
+Example scripts are provided for `dmenu(1)` integration, `bash(1)` completion and import of passwords into `pass(1)`.
+
 `list`
 
 List all passnames.
@@ -59,7 +63,6 @@ Show help.
 # EXAMPLES
 
 List existing passwords in store
-
 ```
 $ teampass list
 web/example.com/foo
@@ -67,7 +70,7 @@ web/example.com/bar
 wifi/room1/wpa
 ```
 
-Find existing passwords in store that match .com
+Find existing passwords in store that match ".com"
 ```
 $ teampass find .com
 web/example.com/foo
@@ -101,6 +104,11 @@ Generated password: "formed danbury tinder stripy climate program's"
 Open a nice shell with autocompletion and history search
 ```
 $ teampass shell
+```
+
+Dump all passwords as json on stdout and use `jq(1)` to query the label of the 5th password in the "web" category
+```
+$ teampass dump | jq '."web"."5"."label"'
 ```
 
 # CONFIGURATION
