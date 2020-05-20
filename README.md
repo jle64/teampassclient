@@ -1,3 +1,5 @@
+**Warning** This project is no longer maintained or supported.
+
 # NAME
 
 teampass - Teampass client, retrieves and inserts passwords into Teampass password manager
